@@ -1,8 +1,15 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <sstream>
 
 using namespace std;
+
+string& trim(string& word){
+	word.erase(0, word.find_first_not_of(" "));
+	word.erase(word.find_last_not_of(" ") + 1);
+	return word;
+}
 
 class attribute{
 	string key;
@@ -37,6 +44,7 @@ public:
 class Figure{
 	int x;
 	int y;
+	int size_attributes;
 	attribute* attributes;
 public:
 	Figure(){}
@@ -46,6 +54,8 @@ public:
 class Circle{};
 class Rectangle{};
 class Line{};
+
+class Factory{};
 
 class FileSVG{
 	bool filled;
@@ -57,24 +67,75 @@ class FileSVG{
 		delete[] figures;
 		size_figures = 0;
 		figures = nullptr;
+		filled = false;
 		name.clear();
 	};
 
 public:
-	FileSVG():figures(nullptr){}
+	FileSVG():figures(nullptr),filled(false),size_figures(0){}
+
 	void set_name(string name_){
 		name = name_;
 	}	
+
 	string get_name(){
 		return name;
 	}
-	bool is_filled();
-	bool fill_content(){
-		return true;
-	}
-	void print(){
 
+	bool is_filled(){
+		return filled;
+	};
+
+	bool fill_content(){
+		if(this->name.size() == 0){
+			return filled;
+		}
+		ifstream original_file(this->name);
+		if(!original_file){
+			ofstream new_file(this->name);
+			new_file.close();
+			filled = false;
+		}else if(original_file.is_open()){	
+
+			string line;
+			bool svg_mode = false;
+
+			while(getline(original_file,line)){
+				trim(line);
+				if(line.compare("</svg>") == 0){
+					svg_mode = false;
+				}
+				if(svg_mode){
+					int index = 1;
+					string figure_name;
+					while(line[index] != ' '){
+						figure_name += line[index];
+						index++;
+					}
+					cout << figure_name << endl;
+				}
+				if(line.compare("<svg>") == 0){
+					svg_mode = true;
+				}
+			}
+
+			filled = true;
+		}else{
+			cout << "The file cannot be opened" << endl;
+			original_file.close();
+			filled = false;
+		}
+		original_file.close();
+		return filled;
 	}
+
+	void print(){
+		for (int i = 0; i < size_figures; ++i)
+		{
+			cout << i+1 << ". ";
+		}
+	}
+
 	void save_as(std::string name_){
 		if(name.compare(name_) == 0){
 			char name__[name.size()+1];
@@ -86,11 +147,11 @@ public:
 		new_file << "<?xml version=\"1.0\" standalone=\"no\"?>" << endl;
 		new_file << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">" << endl;
 		new_file << "<svg>" << endl;
+		//ssdsdsd
 		new_file << "</svg>" << endl;
-		//write_in_file(new_file,tree,0);
 		new_file.close();
 	}
-	//void write_in_file(std::ofstream& stream, elementXML* elem, int spaces);
+
 	void empty_content(){
 		_clearContent();
 	}
@@ -112,16 +173,15 @@ int main(){
 		getline(cin,command);
 
 		if(command.compare(0,5,"open ") == 0){
-			//if(file.is_filled()){
-				//cout << "You must close the opened file first" << endl;
-			//}else{
+			if(file.is_filled()){
+				cout << "You must close the opened file first" << endl;
+			}else{
 				string file_name = command.substr(5);
-				cout << file_name << endl;
 				file.set_name(file_name);
 				if(file.fill_content()){
 					cout << "Successfully opened " << file.get_name() << endl;
 				}
-			//}	
+			}	
 		}
 
 		if(command.compare(0,7,"saveas ") == 0){
@@ -132,6 +192,15 @@ int main(){
 			//}else{
 				//cout << "You must open a file first" << endl;
 			//}
+		}
+
+		if(command.compare("save") == 0){
+			//if(file.is_filled()){
+				file.save_as(file.get_name());
+				cout << "Successfully saved " << file.get_name() << endl;
+			//}else{
+				//cout << "You must open a file first" << endl;
+			//}	
 		}
 
 		if(command.compare("help") == 0){
@@ -160,5 +229,13 @@ int main(){
 			cout << "Exiting the program..." << endl;
 			active = false;
 		}	
+
+		if(command.compare("print") == 0){
+			//if(file.is_filled()){
+				file.print();
+			//}else{
+			//	cout << "You must open a file first" << endl;
+			//}
+		}
 	}
 }
