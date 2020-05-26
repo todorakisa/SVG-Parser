@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 using namespace std;
 
@@ -15,6 +16,7 @@ class attribute{
 	string key;
 	string value;
 public:
+	attribute(){}
 
 	attribute& operator=(attribute& other){
 		if(this!=&other){
@@ -39,40 +41,94 @@ public:
 	string get_value(){
 		return value;
 	}
+
+	~attribute(){}
 };
 
 class Figure{
 	int x;
 	int y;
-	int size_attributes;
-	attribute* attributes;
+	string name;
+	vector<attribute*> attributes;
 public:
 	Figure(){}
-	~Figure(){}
+
+	void set_name(string name_){
+		name = name_;
+	}
+
+	string get_name(){
+		return name;
+	}
+
+	void add_attribute(string atr){
+		string key;
+		string value;
+		int index = 0;
+		while(atr[index] != '='){
+			key+= atr[index];
+			index++;
+		}
+		for (int i = index+2; i < atr.size()-1; ++i)
+		{
+			value+=atr[i];
+		}
+
+		attribute* attribute_ = new attribute();
+		attribute_->set_key(key);
+		attribute_->set_value(value);
+		attributes.push_back(attribute_);
+	}
+
+	void printFigure(){
+		cout << "<figure ";
+		for (attribute* a : attributes)
+		{
+			cout << a->get_key() << "=\"" << a->get_value() << "\" ";
+		}
+		cout << "/>" << endl;
+	}
+
+	~Figure(){
+		for(attribute* a : attributes){
+			delete a;
+		}
+	}
 };
 
 class Circle{};
 class Rectangle{};
 class Line{};
 
-class Factory{};
+class Factory{
+public: 
+	static Figure* make(string type){
+        Figure* newFigure = nullptr;
+        if(type.compare("rect") == 0){
+                newFigure = new Figure();
+        }else if(type.compare("circle") == 0){
+                newFigure = new Figure();
+        }else if(type.compare("line") == 0){
+                newFigure = new Figure();
+        }
+        return newFigure;
+	}
+};
 
 class FileSVG{
 	bool filled;
 	string name;
-	int size_figures;
-	Figure* figures;
+	vector<Figure*> figures;
 
 	void _clearContent(){
-		delete[] figures;
-		size_figures = 0;
-		figures = nullptr;
-		filled = false;
-		name.clear();
+		for (Figure* f : figures)
+		{
+			delete f;
+		}
 	};
 
 public:
-	FileSVG():figures(nullptr),filled(false),size_figures(0){}
+	FileSVG():filled(false){}
 
 	void set_name(string name_){
 		name = name_;
@@ -106,13 +162,20 @@ public:
 					svg_mode = false;
 				}
 				if(svg_mode){
-					int index = 1;
-					string figure_name;
-					while(line[index] != ' '){
-						figure_name += line[index];
-						index++;
+					Figure* figure = nullptr;
+					istringstream fig(line);
+					string word;
+					bool first = true;
+					while(fig >> word){
+						if(first){
+							first = false;
+							word.erase(word.begin());
+							figure = Factory::make(word);
+						}else if(word.compare("/>") != 0){
+							figure->add_attribute(word);
+						}
 					}
-					cout << figure_name << endl;
+					figures.push_back(figure);
 				}
 				if(line.compare("<svg>") == 0){
 					svg_mode = true;
@@ -130,9 +193,12 @@ public:
 	}
 
 	void print(){
-		for (int i = 0; i < size_figures; ++i)
-		{
-			cout << i+1 << ". ";
+		for(Figure* f : figures){
+			if(f == nullptr){
+				cout  << "GEIIIIIIIIIIIII" << endl;
+			}else{
+				f->printFigure();
+			}
 		}
 	}
 
@@ -225,17 +291,16 @@ int main(){
 		}
 
 		if(command.compare("exit") == 0){
-			file.empty_content();
 			cout << "Exiting the program..." << endl;
 			active = false;
 		}	
 
 		if(command.compare("print") == 0){
-			//if(file.is_filled()){
+			if(file.is_filled()){
 				file.print();
-			//}else{
-			//	cout << "You must open a file first" << endl;
-			//}
+			}else{
+				cout << "You must open a file first" << endl;
+			}
 		}
 	}
 }
