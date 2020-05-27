@@ -2,7 +2,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <vector>
+#include <list>
 
 using namespace std;
 
@@ -49,7 +49,17 @@ class Figure{
 	int x;
 	int y;
 	string name;
-	vector<attribute*> attributes;
+protected:
+	list<attribute*> attributes;
+
+	void set_x(int x_){
+		x = x_;
+	}
+
+	void set_y(int y_){
+		y = y_;
+	}
+
 public:
 	Figure(){}
 
@@ -59,6 +69,14 @@ public:
 
 	string get_name(){
 		return name;
+	}
+
+	int get_x(){
+		return x;
+	}
+
+	int get_y(){
+		return y;
 	}
 
 	void add_attribute(string atr){
@@ -80,36 +98,127 @@ public:
 		attributes.push_back(attribute_);
 	}
 
-	void printFigure(){
-		cout << "<figure ";
-		for (attribute* a : attributes)
-		{
-			cout << a->get_key() << "=\"" << a->get_value() << "\" ";
-		}
-		cout << "/>" << endl;
-	}
+	virtual void fix() = 0;
+	virtual void printFigure() = 0;
 
-	~Figure(){
+	virtual ~Figure(){
 		for(attribute* a : attributes){
 			delete a;
 		}
+		attributes.clear();
 	}
 };
 
-class Circle{};
-class Rectangle{};
-class Line{};
+class Circle : public Figure{
+	int r;
+public: 
+	Circle(){
+		set_name("circle");
+	}
+
+	void fix(){
+		if(attributes.front()->get_key().compare("cx") == 0){
+			set_x(stoi(attributes.front()->get_value()));
+			delete attributes.front();
+			attributes.pop_front();
+		}
+		if(attributes.front()->get_key().compare("cy") == 0){
+			set_y(stoi(attributes.front()->get_value()));
+			delete attributes.front();
+			attributes.pop_front();
+		}
+		if(attributes.front()->get_key().compare("r") == 0){
+			r = stoi(attributes.front()->get_value());
+			delete attributes.front();
+			attributes.pop_front();
+		}
+	}
+
+	void printFigure(){
+		cout << get_name() << " " << get_x() << " " << get_y() << " " << r << " ";
+		for (attribute* a : attributes)
+		{
+			cout << a->get_value() << " ";
+		}
+	}
+
+	~Circle(){}
+};
+class Rectangle : public Figure{
+	int width;
+	int height;
+public:
+	Rectangle(){
+		set_name("rect");
+	}
+
+	void fix(){
+		if(attributes.front()->get_key().compare("x") == 0){
+			set_x(stoi(attributes.front()->get_value()));
+			delete attributes.front();
+			attributes.pop_front();
+		}
+		if(attributes.front()->get_key().compare("y") == 0){
+			set_y(stoi(attributes.front()->get_value()));
+			delete attributes.front();
+			attributes.pop_front();
+		}
+		if(attributes.front()->get_key().compare("width") == 0){
+			width = stoi(attributes.front()->get_value());
+			delete attributes.front();
+			attributes.pop_front();
+		}
+		if(attributes.front()->get_key().compare("height") == 0){
+			height = stoi(attributes.front()->get_value());
+			delete attributes.front();
+			attributes.pop_front();
+		}
+	}
+
+	void printFigure(){
+		cout << get_name() << " " << get_x() << " " << get_y() << " " << width << " " << height << " ";
+		for (attribute* a : attributes)
+		{
+			cout << a->get_value() << " ";
+		}
+	}
+
+	~Rectangle(){}
+};
+class Line : public Figure{
+public:
+	Line(){}
+
+	void fix(){
+		if(attributes.front()->get_key().compare("cx") == 0){
+			set_x(stoi(attributes.front()->get_value()));
+			delete attributes.front();
+			attributes.pop_front();
+		}
+		if(attributes.front()->get_key().compare("cy") == 0){
+			set_y(stoi(attributes.front()->get_value()));
+			delete attributes.front();
+			attributes.pop_front();
+		}
+	}
+
+	void printFigure(){
+		
+	}
+
+	~Line(){}
+};
 
 class Factory{
 public: 
 	static Figure* make(string type){
         Figure* newFigure = nullptr;
         if(type.compare("rect") == 0){
-                newFigure = new Figure();
+                newFigure = new Rectangle();
         }else if(type.compare("circle") == 0){
-                newFigure = new Figure();
+                newFigure = new Circle();
         }else if(type.compare("line") == 0){
-                newFigure = new Figure();
+                newFigure = new Line();
         }
         return newFigure;
 	}
@@ -118,13 +227,15 @@ public:
 class FileSVG{
 	bool filled;
 	string name;
-	vector<Figure*> figures;
+	list<Figure*> figures;
 
 	void _clearContent(){
 		for (Figure* f : figures)
 		{
 			delete f;
 		}
+		figures.clear();
+		filled = false;
 	};
 
 public:
@@ -175,6 +286,7 @@ public:
 							figure->add_attribute(word);
 						}
 					}
+					figure->fix();
 					figures.push_back(figure);
 				}
 				if(line.compare("<svg>") == 0){
@@ -193,12 +305,11 @@ public:
 	}
 
 	void print(){
+		int i = 1;
 		for(Figure* f : figures){
-			if(f == nullptr){
-				cout  << "GEIIIIIIIIIIIII" << endl;
-			}else{
-				f->printFigure();
-			}
+			cout << i << ". "; i++;
+			f->printFigure();
+			cout << endl;
 		}
 	}
 
@@ -291,6 +402,7 @@ int main(){
 		}
 
 		if(command.compare("exit") == 0){
+			file.empty_content();
 			cout << "Exiting the program..." << endl;
 			active = false;
 		}	
